@@ -1,7 +1,36 @@
 {
   "name": "website-health-check",
   "version": "1.0.0",
-  "description": "Website audit tool: Lighthouse, WCAG accessibility, SEO, security and broken links, with PDF and CSV reports.",
+  "description": "Website audit tool: Lighthouse performance, WCAG accessibility, SEO, security and broken links, with client-ready PDF and CSV reports.",
+  "keywords": [
+    "website-audit",
+    "seo",
+    "seo-audit",
+    "lighthouse",
+    "core-web-vitals",
+    "accessibility",
+    "wcag",
+    "axe-core",
+    "broken-links",
+    "link-checker",
+    "web-performance",
+    "security-headers",
+    "playwright",
+    "pdf-report",
+    "nodejs",
+    "express",
+    "vercel"
+  ],
+  "homepage": "https://website-health-check-zeta.vercel.app",
+  "bugs": {
+    "url": "https://github.com/zain-ul-abideen-5036/website-health-check/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/zain-ul-abideen-5036/website-health-check.git"
+  },
+  "license": "MIT",
+  "author": "Zain Ul Abideen",
   "type": "module",
   "main": "server.js",
   "scripts": {

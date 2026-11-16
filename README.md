@@ -1,6 +1,30 @@
 # Website Health Check
 
-A website audit tool for agencies. Runs on your computer or on Vercel. Enter a URL and it crawls the site in a real browser, runs Google Lighthouse and WCAG accessibility tests, checks every link, and produces a prioritised fix list. You can export the report as PDF, HTML or CSV for clients.
+**Audit any website for performance, SEO, accessibility, security and broken links, then hand the client a report they can actually read.**
+
+[![Live demo](https://img.shields.io/badge/demo-live-23634c?style=flat-square)](https://website-health-check-zeta.vercel.app)
+[![License: MIT](https://img.shields.io/badge/license-MIT-1b1a17?style=flat-square)](LICENSE)
+![Node.js](https://img.shields.io/badge/node-%3E%3D22.17-1b1a17?style=flat-square&logo=node.js&logoColor=white)
+![Lighthouse](https://img.shields.io/badge/Google-Lighthouse-1b1a17?style=flat-square&logo=lighthouse&logoColor=white)
+![WCAG 2.2 AA](https://img.shields.io/badge/WCAG-2.2%20AA-1b1a17?style=flat-square)
+![Deploy on Vercel](https://img.shields.io/badge/deploy-Vercel-1b1a17?style=flat-square&logo=vercel&logoColor=white)
+
+Enter a URL and the app crawls the site in a real Chrome browser, runs Google Lighthouse and WCAG accessibility tests, checks every link, and produces a prioritised fix list with plain-English explanations. Export a designed PDF for the client and CSV spreadsheets for the developer. It runs on your own computer or on Vercel, needs no API keys, and costs nothing to run.
+
+**[Try the live demo →](https://website-health-check-zeta.vercel.app)**
+
+### Highlights
+
+- **50+ checks** across five areas, each scored 0–100 and graded A–F
+- **Ranked action plan**: every issue has a severity, an effort estimate, why it matters, how to fix it and the exact pages affected
+- **Client-ready PDF** with cover page, summary, findings and methodology, plus four Excel-friendly CSVs
+- **Before/after comparison** against the previous audit of the same site
+- **Open access**: no sign-up and no password. History is private to each browser, and reports are shareable by link
+- **Free**: Lighthouse, axe-core and Playwright are open source; optional real-visitor data uses a free Google key
+
+### Built with
+
+Node.js · Express · Playwright · Google Lighthouse · axe-core · pdf-lib · Vercel Blob · vanilla JavaScript (no build step)
 
 ## What it checks
 
@@ -114,9 +138,11 @@ In **Settings → Environment Variables**, add:
 
 | Name | Value | Why |
 |---|---|---|
-| `APP_PASSWORD` | a password of your choice | **Strongly recommended.** Without it, anyone with the link can run audits on your account. The browser asks for it; any username works. |
+| `AUDITS_PER_HOUR` | for example `6` | Optional: how many audits one visitor can run per hour (default 6) |
 | `GOOGLE_API_KEY` | your key from above | Optional: real-visitor data |
 | `REPORT_BRAND` | for example `Extrasol` | Optional: name on the PDF cover |
+
+No password is needed: anyone with the link can use the app. See [Open access](#open-access-no-password) for how it stays safe.
 
 ### 5. Redeploy
 
@@ -129,6 +155,17 @@ Open **Deployments**, click **⋯** on the latest one and choose **Redeploy**. E
 - **Browser fails to start**: open the deployment's **Logs** tab and look for the error. `@sparticuz/chromium` must be a version that works with the installed `playwright-core`.
 - Vercel's Hobby plan is for personal, non-commercial use. For client work at an agency, use the agency's Pro account.
 
+## Open access (no password)
+
+The app is designed to be shared publicly without accounts or passwords:
+
+- **Private history per browser.** Each browser gets a random, anonymous ID in a secure cookie. History shows only the audits run from that browser, and only that browser can delete them.
+- **Shareable reports.** Report links use long random IDs, so anyone you send a link to can view it, but links can't be guessed.
+- **Rate limit.** Each visitor can run a limited number of audits per hour (`AUDITS_PER_HOUR`, default 6), which keeps usage of a free hosting plan under control.
+- **Safe targets only.** Private and local network addresses are blocked, so the app can't be used to probe internal systems.
+
+On your own computer you see every audit; the per-browser rules apply on Vercel (or set `PUBLIC_MODE=1`).
+
 ## Optional (paid): Claude-written summaries
 
 The Claude API has no free tier, so this is off unless you add a key. The built-in summary writer covers the same ground for free. To use Claude, set `ANTHROPIC_API_KEY` before starting (or add it in Vercel); an **AI summary** switch then appears on the New audit page. It uses `claude-opus-5-5` by default; override with `CLAUDE_MODEL`.
@@ -139,7 +176,8 @@ The Claude API has no free tier, so this is off unless you add a key. The built-
 |---|---|---|
 | `PORT` | `3000` | Local port |
 | `GOOGLE_API_KEY` | none | Real-visitor data from the Chrome UX Report (free) |
-| `APP_PASSWORD` | none | Password-protect the app |
+| `AUDITS_PER_HOUR` | `6` | Audits per visitor per hour on a public deployment |
+| `PUBLIC_MODE` | off | `1` applies per-browser history and rate limits outside Vercel |
 | `REPORT_BRAND` | `Website Health Check` | Name on the PDF cover |
 | `BLOB_READ_WRITE_TOKEN` | none | Vercel Blob storage (added automatically on Vercel) |
 | `BLOB_ACCESS` | `private` | Set to `public` only if your Blob store was created as public |
@@ -149,7 +187,7 @@ The Claude API has no free tier, so this is off unless you add a key. The built-
 ## Project structure
 
 ```
-app.js                 Express app: API, progress, PDF/HTML/CSV exports, password protection
+app.js                 Express app: API, progress, PDF/HTML/CSV exports, open-access rules
 server.js              Starts the app on your computer
 api/index.js           Vercel entry point (same app)
 vercel.json            Vercel configuration: function time limit, bundled files, routing
@@ -161,6 +199,7 @@ lib/summary.js         Free built-in summary, quick wins and client email
 lib/pdf-report.js      Print layout for the PDF report
 lib/exports.js         CSV exports (issues, locations, pages, links)
 lib/storage.js         Saved audits: local disk or Vercel Blob
+lib/visitor.js         Anonymous visitor IDs and rate limiting
 lib/ai.js              Optional Claude summary
 lib/checks/            Lighthouse, link checker, site-wide checks, Chrome UX Report
 lib/url.js             URL validation (blocks private/local addresses), crawl rules
@@ -174,3 +213,11 @@ public/js/render.js    Report renderer, shared by the app and exported reports
 - Automated accessibility testing finds roughly a third of WCAG issues. Manual testing is still needed for compliance.
 - Social networks block automated link checks, so those links are marked "could not verify" rather than broken.
 - Only audit sites you own or have permission to test.
+
+## Contributing
+
+Contributions are welcome. Read the [contributing guide](CONTRIBUTING.md) to get started, and please follow the [code of conduct](CODE_OF_CONDUCT.md). To report a security problem privately, see [SECURITY.md](SECURITY.md).
+
+## License
+
+[MIT](LICENSE) © 2026 Zain Ul Abideen

@@ -189,6 +189,7 @@ code { font-family: var(--mono); font-size: var(--text-xs); background: var(--su
 /* ================================================================ Shared page layout */
 .page { padding-top: 56px; padding-bottom: 88px; }
 .page-head { margin-bottom: 36px; }
+.page-note { margin-top: 10px; font-size: var(--text-sm); color: var(--ink-3); max-width: 60ch; }
 .page-head h1 { font-family: var(--serif); font-size: var(--text-2xl); line-height: 1.05; letter-spacing: -0.03em; margin-top: 8px; max-width: 20ch; }
 .row { display: flex; align-items: flex-end; justify-content: space-between; gap: 20px; flex-wrap: wrap; }
 .btn-lg { height: 44px; padding: 0 20px; font-size: var(--text-base); }
@@ -523,4 +524,43 @@ body.print .meter i, body.print .rail i { transition: none; }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { transition-duration: 0ms !important; animation-duration: 0ms !important; animation-iteration-count: 1 !important; }
   .rail.indeterminate i { width: 100%; opacity: .35; }
+}
+
+/* ================================================================ Small-screen fixes */
+/* Report header stacks below 900px, putting Export on the left: open its menu rightwards. */
+@media (max-width: 900px) { .menu-list { right: auto; left: 0; transform-origin: top left; } }
+/* Device frames never wider than the screen. */
+.device, .device .frame { max-width: 100%; }
+@media (max-width: 400px) { .device.tablet .frame { width: 100%; } .device.mobile .frame { width: 200px; } }
+/* Long URLs inside issue explanations wrap instead of pushing past the screen edge. */
+.issue .body, .priority p, .checklist .s { overflow-wrap: anywhere; }
+.issue .body a { word-break: break-all; }
+
+/* ---- Phones: history rows become compact cards instead of a sideways-scrolling table */
+@media (max-width: 640px) {
+  table.t.htable thead, table.t.htable td.h-area, table.t.htable td.h-pages { display: none; }
+  table.t.htable, table.t.htable tbody { display: block; }
+  table.t.htable tbody tr { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 2px 12px; padding: 12px 0; border-bottom: 1px solid var(--line); }
+  table.t.htable tbody tr:hover td { background: none; }
+  table.t.htable td { display: block; padding: 0; border: 0; text-align: left; }
+  table.t.htable .h-site { grid-column: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  table.t.htable .h-score { grid-column: 2; grid-row: 1 / span 2; align-self: center; text-align: right; }
+  table.t.htable .h-date { grid-column: 1; font-size: var(--text-xs); }
+  table.t.htable .h-issues { grid-column: 1 / -1; margin-top: 4px; }
+  table.t.htable .h-actions { grid-column: 1 / -1; margin: 6px 0 0 -8px; text-align: left; }
+  .table-wrap:has(.htable) { overflow: visible; }
+
+  /* "Where" tables inside an issue: one stacked block per affected page */
+  .affected table, .affected tbody, .affected tr, .affected td { display: block; width: auto !important; }
+  .affected thead { display: none; }
+  .affected tr { padding: 10px 12px; border-bottom: 1px solid var(--line); }
+  .affected tr:last-child { border-bottom: 0; }
+  .affected td { padding: 0 !important; border: 0 !important; white-space: normal; }
+  .affected td + td { margin-top: 3px; color: var(--ink-2); font-size: var(--text-xs); }
+}
+/* Small summary figures stay on one row on phones. */
+@media (max-width: 760px) {
+  .stats.stats-keep { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .stats.stats-keep > div:nth-child(n) { padding-left: 12px; border-left: 1px solid var(--line); }
+  .stats.stats-keep > div:first-child { padding-left: 0; border-left: 0; }
 }

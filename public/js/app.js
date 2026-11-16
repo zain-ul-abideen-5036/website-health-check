@@ -180,7 +180,7 @@
       <section class="container section split-section">
         <div class="section-head"><p class="kicker">Free and private</p><h2>Nothing to pay, no API keys to manage.</h2></div>
         <div class="prose">
-          <p>Lighthouse, axe-core, Playwright and the summary writer are all open source and run on this server, so audits cost nothing. ${config.mode === 'stream' ? 'Results are kept in private storage that only this app can read.' : 'Results stay on your computer in <code>data/audits</code>.'}</p>
+          <p>Lighthouse, axe-core, Playwright and the summary writer are all open source and run on this server, so audits cost nothing. ${config.mode === 'stream' ? 'No sign-up or password: your audit history is tied to this browser, and you can share any report by its link.' : 'Results stay on your computer in <code>data/audits</code>.'}</p>
           <p>Optional: add a free Google API key to include real-visitor Core Web Vitals from the Chrome UX Report.
             ${config.fieldData ? '<strong class="t-good">Real-visitor data is switched on.</strong>' : 'It needs no billing account; see the README for the two-minute setup.'}</p>
         </div>
@@ -318,13 +318,13 @@
     return `<div class="table-wrap"><table class="t htable">
       <thead><tr><th>Website</th><th>Date</th><th class="r">Score</th>${compact ? '' : Object.values(CATS).map((l) => `<th class="r area-col">${l === 'Links & content' ? 'Links' : l === 'Accessibility' ? 'A11y' : l === 'Performance' ? 'Perf.' : l}</th>`).join('')}<th>Issues</th><th class="r">Pages</th>${compact ? '' : '<th><span class="sr">Actions</span></th>'}</tr></thead>
       <tbody>${list.map((a) => `<tr data-id="${a.id}" data-host="${esc(a.host)}">
-        <td><a class="hlink" href="#/audit/${a.id}">${esc(a.host)}</a></td>
-        <td class="nowrap muted">${fmtDate(a.createdAt)}</td>
-        <td class="r nowrap"><span class="hscore t-${gradeTone(a.grade)}">${a.overall}</span> <span class="grade-sm t-${gradeTone(a.grade)}">${a.grade}</span> ${d(deltas.get(a.id) ?? null)}</td>
-        ${compact ? '' : Object.keys(CATS).map((k) => `<td class="r num t-${tone(a.scores[k])}">${a.scores[k]}</td>`).join('')}
-        <td class="nowrap small">${a.counts.critical ? `<span class="sev sev-critical"><i></i>${a.counts.critical}</span> ` : ''}${a.counts.high ? `<span class="sev sev-high"><i></i>${a.counts.high}</span> ` : ''}<span class="muted">${a.counts.critical + a.counts.high + a.counts.medium + a.counts.low} total</span></td>
-        <td class="r num">${a.pages}</td>
-        ${compact ? '' : `<td class="r nowrap row-actions">
+        <td class="h-site"><a class="hlink" href="#/audit/${a.id}">${esc(a.host)}</a></td>
+        <td class="h-date nowrap muted">${fmtDate(a.createdAt)}</td>
+        <td class="h-score r nowrap"><span class="hscore t-${gradeTone(a.grade)}">${a.overall}</span> <span class="grade-sm t-${gradeTone(a.grade)}">${a.grade}</span> ${d(deltas.get(a.id) ?? null)}</td>
+        ${compact ? '' : Object.keys(CATS).map((k) => `<td class="h-area r num t-${tone(a.scores[k])}">${a.scores[k]}</td>`).join('')}
+        <td class="h-issues nowrap small">${a.counts.critical ? `<span class="sev sev-critical"><i></i>${a.counts.critical}</span> ` : ''}${a.counts.high ? `<span class="sev sev-high"><i></i>${a.counts.high}</span> ` : ''}<span class="muted">${a.counts.critical + a.counts.high + a.counts.medium + a.counts.low} total</span></td>
+        <td class="h-pages r num">${a.pages}</td>
+        ${compact ? '' : `<td class="h-actions r nowrap row-actions">
           <a class="btn btn-text" href="/api/audits/${a.id}/export.pdf" data-pdf>PDF</a>
           <a class="btn btn-text" href="#/new/${encodeURIComponent(a.url)}">Re-run</a>
           <button class="btn btn-text danger" data-delete="${a.id}" aria-label="Delete audit of ${esc(a.host)} from ${fmtDate(a.createdAt)}">Delete</button></td>`}
@@ -341,7 +341,7 @@
 
   async function historyView() {
     document.title = 'History · Website Health Check';
-    app.innerHTML = `<div class="container page"><header class="page-head row"><div><p class="kicker">History</p><h1>Saved audits</h1></div><a class="btn btn-primary" href="#/new">New audit</a></header>
+    app.innerHTML = `<div class="container page"><header class="page-head row"><div><p class="kicker">History</p><h1>Saved audits</h1>${config.public ? '<p class="page-note">Audits run in this browser. Anyone you send a report link to can view that report.</p>' : ''}</div><a class="btn btn-primary" href="#/new">New audit</a></header>
       <div class="skeleton" style="padding-top:0">${'<div class="b" style="height:44px"></div>'.repeat(5)}</div></div>`;
     let list = [];
     try { list = await api('/api/audits'); } catch (e) { toast(e.message); }
@@ -374,8 +374,8 @@
       </a>`;
     }).join('');
 
-    page.innerHTML = `<header class="page-head row"><div><p class="kicker">History</p><h1>Saved audits</h1></div><a class="btn btn-primary" href="#/new">New audit</a></header>
-      <div class="stats" style="--cols:3">
+    page.innerHTML = `<header class="page-head row"><div><p class="kicker">History</p><h1>Saved audits</h1>${config.public ? '<p class="page-note">Audits run in this browser. Anyone you send a report link to can view that report.</p>' : ''}</div><a class="btn btn-primary" href="#/new">New audit</a></header>
+      <div class="stats stats-keep" style="--cols:3">
         <div><div class="k">Audits saved</div><div class="v">${list.length}</div></div>
         <div><div class="k">Websites</div><div class="v">${sites.size}</div></div>
         <div><div class="k">Average score</div><div class="v t-${tone(avg)}">${avg}<small>/100</small></div></div>

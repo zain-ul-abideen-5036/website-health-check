@@ -19,6 +19,7 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 // Serverless functions have a time limit (300 s on Vercel's free plan), so large crawls are capped there.
 const PAGE_OPTIONS = isServerless ? [1, 5, 10] : [1, 5, 10, 25, 50];
 const MAX_LINKS = isServerless ? 200 : 400;
+const STREAMING = isServerless || process.env.AUDIT_MODE === 'stream';
 
 const app = express();
 app.disable('x-powered-by');
@@ -60,7 +61,9 @@ async function parseAuditRequest(body) {
   try { url = await normaliseUrl(body?.url); } catch (err) { throw Object.assign(err, { status: 400 }); }
   const maxPages = PAGE_OPTIONS.includes(Number(body?.maxPages)) ? Number(body.maxPages) : Math.min(10, PAGE_OPTIONS.at(-1));
   const device = ['mobile', 'desktop', 'both'].includes(body?.device) ? body.device : 'mobile';
-  return { url, options: { maxPages, device, ai: Boolean(body?.ai) && aiEnabled(), maxLinks: MAX_LINKS } };
+  // Streamed runs must finish before the platform cuts the request: give the pipeline a budget below the limit.
+  const timeBudgetMs = STREAMING ? STREAM_LIMIT_MS - 15000 : undefined;
+  return { url, options: { maxPages, device, ai: Boolean(body?.ai) && aiEnabled(), maxLinks: MAX_LINKS, timeBudgetMs } };
 }
 
 // Local server: queue the audit and return its id; progress comes from /api/jobs/:id/events.

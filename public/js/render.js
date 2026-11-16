@@ -159,7 +159,8 @@
     }
 
     const top = an.issues.slice(0, 6);
-    return `<h2 class="panel-title">Overview</h2>
+    const limits = a.limits?.length ? `<p class="notice" style="margin-top:28px">Shortened to fit the server time limit: ${a.limits.map(esc).join(' ')}</p>` : '';
+    return `<h2 class="panel-title">Overview</h2>${limits}
       <div class="ov-grid"><div>${scores}</div>${dist}</div>
       ${ai}${cmp}
       ${ruleTitle('Top priorities', an.issues.length > top.length ? `<button class="btn btn-text" data-goto="issues">All ${an.issues.length} issues →</button>` : '')}

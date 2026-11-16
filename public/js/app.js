@@ -500,7 +500,14 @@
       pendingStream = null;
       activeStream = { close: () => controller.abort() };
       readLines(res, onData).then(() => {
-        if (!finished) fail('The audit stopped before it finished. On Vercel the free plan allows 5 minutes per audit, so try fewer pages or a single Lighthouse device.');
+        if (finished) return;
+        // The connection closed without a result. Say how long it ran and where, so the cause can be found.
+        const secs = Math.round((Date.now() - started) / 1000);
+        const where = document.querySelector('#steps li.active')?.firstChild?.textContent || 'start-up';
+        const ran = `${Math.floor(secs / 60)}:${String(secs % 60).padStart(2, '0')}`;
+        fail(secs >= 280
+          ? `The audit stopped after ${ran}, during "${where}". Vercel's free plan allows 5 minutes per audit, so try fewer pages or a single Lighthouse device.`
+          : `The server stopped unexpectedly after ${ran}, during "${where}". This is not the time limit. Open Vercel → Deployments → Logs to see the error.`);
       }).catch((err) => {
         if (err.name !== 'AbortError' && !finished) fail('Lost connection to the server, so the audit may have been interrupted.');
       });

@@ -72,20 +72,49 @@ app.post('/api/audits', wrap(async (req, res) => {
 }));
 
 // Serverless: run the audit inside this request and stream progress as newline-delimited JSON.
+// Streams that are currently running an audit, so a crash anywhere can still be reported to the browser.
+const liveStreams = new Set();
+const reportCrash = (kind) => (err) => {
+  console.error(`[${kind}]`, err);
+  const message = `The server hit an unexpected error: ${String(err?.message || err).split('\n')[0]}`;
+  for (const send of liveStreams) send({ status: 'failed', error: message, message: `Failed: ${message}` });
+};
+// Without these, one stray error inside Chrome or Lighthouse would kill the process and cut the stream silently.
+process.on('unhandledRejection', reportCrash('unhandledRejection'));
+process.on('uncaughtException', reportCrash('uncaughtException'));
+
+// Stop just before the platform's time limit so the browser gets a clear message instead of a cut connection.
+const STREAM_LIMIT_MS = ((Number(process.env.FUNCTION_TIMEOUT_SECONDS) || 300) - 12) * 1000;
+
 app.post('/api/audits/stream', wrap(async (req, res) => {
   let parsed;
   try { parsed = await parseAuditRequest(req.body); } catch (err) { return res.status(err.status || 400).json({ error: err.message }); }
   const job = createLiveJob(parsed.url, parsed.options);
   res.writeHead(200, { 'Content-Type': 'application/x-ndjson; charset=utf-8', 'Cache-Control': 'no-cache, no-transform', 'X-Accel-Buffering': 'no' });
-  const send = (data) => res.write(`${JSON.stringify(data)}\n`);
+  const send = (data) => { if (!res.writableEnded) res.write(`${JSON.stringify(data)}\n`); };
+  liveStreams.add(send);
   send({ snapshot: publicJob(job) });
-  const onUpdate = (u) => send(u);
+  const onUpdate = (u) => {
+    send(u);
+    if (u.message) console.log(`[audit ${job.id}] ${u.message}`); // visible in the Vercel logs
+  };
   job.events.on('update', onUpdate);
   const ping = setInterval(() => send({ ping: true }), 10000); // keeps proxies from closing an idle stream
+  let timer;
+  const deadline = new Promise((resolve) => {
+    timer = setTimeout(() => {
+      const message = `The audit hit the ${Math.round((STREAM_LIMIT_MS + 12000) / 60000)}-minute server limit during "${job.step || 'start-up'}". Try fewer pages or a single Lighthouse device.`;
+      console.error(`[audit ${job.id}] ${message}`);
+      send({ status: 'failed', error: message, message: `Failed: ${message}` });
+      resolve();
+    }, STREAM_LIMIT_MS);
+  });
   try {
-    await job.run();
+    await Promise.race([job.run(), deadline]);
   } finally {
+    clearTimeout(timer);
     clearInterval(ping);
+    liveStreams.delete(send);
     job.events.off('update', onUpdate);
     res.end();
   }

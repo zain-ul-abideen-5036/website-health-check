@@ -93,7 +93,7 @@
           </div>
         </details>
         <button class="btn btn-primary" data-action="rerun">Run again</button>
-        <button class="btn btn-text danger" data-action="delete">Delete</button>
+        ${a.canDelete === false ? '' : '<button class="btn btn-text danger" data-action="delete">Delete</button>'}
       </div>`}
     </div></div></header>`;
   }

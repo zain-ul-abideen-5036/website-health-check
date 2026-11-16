@@ -2,7 +2,6 @@
  * The Express app, shared by the local server (server.js) and Vercel (api/index.js).
  */
 import express from 'express';
-import { timingSafeEqual } from 'node:crypto';
 import { readFile } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -10,6 +9,7 @@ import { normaliseUrl } from './lib/url.js';
 import { createJob, createLiveJob, getJob, publicJob } from './lib/jobs.js';
 import { listAudits, loadAudit, deleteAudit, readScreenshot, storageProblem } from './lib/storage.js';
 import { launchBrowser, isServerless } from './lib/browser.js';
+import { visitor, clientIp, createRateLimit } from './lib/visitor.js';
 import { aiEnabled } from './lib/ai.js';
 import { fieldDataEnabled } from './lib/checks/field-data.js';
 import { issuesCsv, locationsCsv, pagesCsv, linksCsv } from './lib/exports.js';
@@ -24,19 +24,13 @@ const STREAMING = isServerless || process.env.AUDIT_MODE === 'stream';
 const app = express();
 app.disable('x-powered-by');
 
-// Optional password protection (recommended for a public deployment): set APP_PASSWORD.
-// The browser shows its sign-in box; any username works.
-const PASSWORD = process.env.APP_PASSWORD || '';
-if (PASSWORD) {
-  const expected = Buffer.from(PASSWORD);
-  app.use((req, res, next) => {
-    const [scheme, encoded] = (req.headers.authorization || '').split(' ');
-    const given = scheme === 'Basic' && encoded ? Buffer.from(Buffer.from(encoded, 'base64').toString('utf8').split(':').slice(1).join(':')) : Buffer.alloc(0);
-    if (given.length === expected.length && timingSafeEqual(given, expected)) return next();
-    res.setHeader('WWW-Authenticate', 'Basic realm="Website Health Check", charset="UTF-8"');
-    res.status(401).send('Password required');
-  });
-}
+// Open access, no passwords: each browser gets an anonymous visitor ID (see lib/visitor.js).
+// On a public deployment, History shows only the visitor's own audits and audits are rate limited.
+const PUBLIC = isServerless || process.env.PUBLIC_MODE === '1';
+const AUDITS_PER_HOUR = Number(process.env.AUDITS_PER_HOUR) || 6;
+const auditLimit = createRateLimit({ max: AUDITS_PER_HOUR, windowMs: 60 * 60 * 1000 });
+app.set('trust proxy', true);
+app.use('/api', visitor);
 
 app.use(express.json({ limit: '100kb' }));
 app.use(express.static(path.join(__dirname, 'public')));
@@ -51,10 +45,13 @@ app.get('/api/config', (req, res) => res.json({
   // 'queue': local server, progress over Server-Sent Events. 'stream': serverless, the audit runs inside one streamed request.
   mode: isServerless || process.env.AUDIT_MODE === 'stream' ? 'stream' : 'queue',
   storageProblem: storageProblem(),
+  public: PUBLIC,
+  auditsPerHour: PUBLIC ? AUDITS_PER_HOUR : null,
 }));
 
 // ------------------------------------------------------------------ start an audit
-async function parseAuditRequest(body) {
+async function parseAuditRequest(req) {
+  const body = req.body;
   const problem = storageProblem();
   if (problem) throw Object.assign(new Error(problem), { status: 503 });
   let url;
@@ -63,13 +60,18 @@ async function parseAuditRequest(body) {
   const device = ['mobile', 'desktop', 'both'].includes(body?.device) ? body.device : 'mobile';
   // Streamed runs must finish before the platform cuts the request: give the pipeline a budget below the limit.
   const timeBudgetMs = STREAMING ? STREAM_LIMIT_MS - 15000 : undefined;
-  return { url, options: { maxPages, device, ai: Boolean(body?.ai) && aiEnabled(), maxLinks: MAX_LINKS, timeBudgetMs } };
+  if (PUBLIC) {
+    const wait = auditLimit.take(clientIp(req));
+    if (wait) throw Object.assign(new Error(`You've run ${AUDITS_PER_HOUR} audit${AUDITS_PER_HOUR === 1 ? '' : 's'} in the last hour. Please try again in ${wait} minute${wait === 1 ? '' : 's'}.`), { status: 429 });
+  }
+  // owner: hash of the visitor ID, so History can show each visitor only their own audits.
+  return { url, options: { maxPages, device, ai: Boolean(body?.ai) && aiEnabled(), maxLinks: MAX_LINKS, timeBudgetMs, owner: PUBLIC ? req.visitor : undefined } };
 }
 
 // Local server: queue the audit and return its id; progress comes from /api/jobs/:id/events.
 app.post('/api/audits', wrap(async (req, res) => {
   let parsed;
-  try { parsed = await parseAuditRequest(req.body); } catch (err) { return res.status(err.status || 400).json({ error: err.message }); }
+  try { parsed = await parseAuditRequest(req); } catch (err) { return res.status(err.status || 400).json({ error: err.message }); }
   const job = createJob(parsed.url, parsed.options);
   res.status(202).json({ id: job.id });
 }));
@@ -91,7 +93,7 @@ const STREAM_LIMIT_MS = ((Number(process.env.FUNCTION_TIMEOUT_SECONDS) || 300) -
 
 app.post('/api/audits/stream', wrap(async (req, res) => {
   let parsed;
-  try { parsed = await parseAuditRequest(req.body); } catch (err) { return res.status(err.status || 400).json({ error: err.message }); }
+  try { parsed = await parseAuditRequest(req); } catch (err) { return res.status(err.status || 400).json({ error: err.message }); }
   const job = createLiveJob(parsed.url, parsed.options);
   res.writeHead(200, { 'Content-Type': 'application/x-ndjson; charset=utf-8', 'Cache-Control': 'no-cache, no-transform', 'X-Accel-Buffering': 'no' });
   const send = (data) => { if (!res.writableEnded) res.write(`${JSON.stringify(data)}\n`); };
@@ -144,16 +146,29 @@ app.get('/api/jobs/:id/events', (req, res) => {
 });
 
 // ------------------------------------------------------------------ audit history and results
-app.get('/api/audits', wrap(async (req, res) => res.json(await listAudits())));
+/** On a public deployment, only the visitor who ran an audit owns it. Locally, you own everything. */
+const owns = (req, audit) => !PUBLIC || (audit.owner && audit.owner === req.visitor);
 
+app.get('/api/audits', wrap(async (req, res) => {
+  const list = await listAudits();
+  res.json(list.filter((a) => owns(req, a)).map(({ owner, ...a }) => a));
+}));
+
+// Anyone with a report's link can view it (IDs are long and random), but only the owner can delete it.
 app.get('/api/audits/:id', wrap(async (req, res) => {
   const audit = await loadAudit(req.params.id);
   if (!audit) return res.status(404).json({ error: 'Audit not found' });
   audit.screenshotUrls = Object.fromEntries((audit.screenshots || []).map((n) => [n, `/api/audits/${audit.id}/screenshots/${n}.jpg`]));
+  audit.canDelete = owns(req, audit);
+  delete audit.owner;
+  if (audit.options) delete audit.options.owner;
   res.json(audit);
 }));
 
 app.delete('/api/audits/:id', wrap(async (req, res) => {
+  const audit = await loadAudit(req.params.id);
+  if (!audit) return res.status(404).json({ error: 'Audit not found' });
+  if (!owns(req, audit)) return res.status(403).json({ error: 'Only the person who ran this audit can delete it.' });
   await deleteAudit(req.params.id);
   res.status(204).end();
 }));

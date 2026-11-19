@@ -33,7 +33,7 @@
 
 <br />
 
-<img src="docs/screenshots/landing.png" alt="The Website Health Check landing page: the headline Website audits your clients can actually read, a URL field with a Run audit button, and a miniature of the latest audit showing a score of 82, grade B and five area scores" width="100%" />
+<img src="docs/screenshots/landing.png" alt="The Website Health Check landing page: the headline Website audits your clients can actually read, a URL field with a Run audit button, and a miniature of the latest audit showing a score of 84, grade B and five area scores" width="100%" />
 
 ---
 
@@ -96,17 +96,18 @@ Full setup, every environment variable and deploying to Vercel:
 
 ## Inside the app
 
-Real captures from the running application, auditing
-[books.toscrape.com](https://books.toscrape.com), a public sandbox site built
-for testing crawlers. Every figure is one the app produced: 10 pages, 212 links,
-26 issues.
+Real captures from the **deployed app at
+[website-health-check-zeta.vercel.app](https://website-health-check-zeta.vercel.app)**,
+auditing [books.toscrape.com](https://books.toscrape.com), a public sandbox site
+built for testing crawlers. Every figure is one the live app produced: 10 pages,
+200 links, Lighthouse on mobile and desktop, 25 issues, in 53 seconds on Vercel.
 
 ### The report: scores, verdict and the summary
 
 Five areas scored 0–100 and an overall grade, with the change since the last
 audit of the same site. Each score row opens the issues behind it.
 
-<img src="docs/screenshots/overview.png" alt="The report overview: an overall score of 82 out of 100, grade B, up 5 since the previous audit, the five area scores as bars, the verdict No critical problems but 4 high-priority fixes are worth scheduling, issues by severity, and the start of the written summary" width="100%" />
+<img src="docs/screenshots/overview.png" alt="The report overview: an overall score of 84 out of 100, grade B, up 4 since the previous audit, the five area scores as bars, the verdict No critical problems but 4 high-priority fixes are worth scheduling, issues by severity, and the start of the written summary" width="100%" />
 
 ### A ranked action plan, explained
 
@@ -120,7 +121,7 @@ and elements it affects. Filter by severity or area, or search.
 <table>
 <tr>
 <td width="50%"><img src="docs/screenshots/new-audit.png" alt="The New audit page: a URL field, a choice of how many pages to crawl, a choice of mobile, desktop or both for Lighthouse, and a side panel listing what will happen with an estimated time" width="100%" /></td>
-<td width="50%"><img src="docs/screenshots/running.png" alt="An audit of books.toscrape.com in progress: a progress bar at 44 percent with the elapsed time, the steps marked done and in progress, and a live log of pages being scanned" width="100%" /></td>
+<td width="50%"><img src="docs/screenshots/running.png" alt="An audit of books.toscrape.com in progress on the live site: a progress bar part way through with the elapsed time, the steps marked done and in progress, and a live log of pages being scanned" width="100%" /></td>
 </tr>
 <tr>
 <td align="center"><b>New audit</b>: pages, Lighthouse device and an honest time estimate</td>
@@ -132,7 +133,7 @@ and elements it affects. Filter by severity or area, or search.
 
 <table>
 <tr>
-<td width="25%"><img src="docs/screenshots/pdf-cover.png" alt="PDF page 1: a cover prepared for books.toscrape.com with the overall score 82 and grade B, the five area scores and desktop and mobile screenshots" width="100%" /></td>
+<td width="25%"><img src="docs/screenshots/pdf-cover.png" alt="PDF page 1: a cover prepared for books.toscrape.com with the overall score 84 and grade B, the five area scores and desktop and mobile screenshots" width="100%" /></td>
 <td width="25%"><img src="docs/screenshots/pdf-summary.png" alt="PDF page 2: the written summary, key figures, a table of scores by area with what each covers, and issues by severity" width="100%" /></td>
 <td width="25%"><img src="docs/screenshots/pdf-action-plan.png" alt="PDF page 3: the action plan, a ranked table of every issue with area, severity, effort and pages affected" width="100%" /></td>
 <td width="25%"><img src="docs/screenshots/pdf-findings.png" alt="PDF page 5: detailed findings for an area, each issue with why it matters, how to fix it and example pages" width="100%" /></td>
@@ -146,7 +147,7 @@ and elements it affects. Filter by severity or area, or search.
 </table>
 
 Followed by performance, technical checks, every page scanned and a
-methodology appendix: 18 pages for this audit. The same audit also exports as
+methodology appendix: 18 pages for this audit, rendered by the deployed app. The same audit also exports as
 an interactive HTML file and four Excel-ready spreadsheets.
 
 <img src="docs/screenshots/export-menu.png" alt="The Export menu open on a report: PDF report and Interactive HTML for the client, then Issues, Issue locations, Pages and Links spreadsheets, each with a one-line description" width="60%" />
@@ -502,10 +503,12 @@ architecture, scoring, security and deployment, lives in one place:
 
 ## Project status
 
-Deployed at
+Deployed and running at
 **[website-health-check-zeta.vercel.app](https://website-health-check-zeta.vercel.app)**
 on Vercel, with audits stored in Vercel Blob, and runnable on any machine with
-Node.js.
+Node.js. Every screenshot above was captured from the live deployment: a full
+10-page audit with Lighthouse on mobile and desktop completes there in under a
+minute, and the PDF is rendered by the serverless function itself.
 
 - Complete audit pipeline: site checks, Lighthouse, crawl with axe-core, link
   checking, screenshots, scoring, comparison and the written summary
@@ -519,8 +522,8 @@ Known gaps, stated plainly:
 
 - **There is no automated test suite yet.** Verification has been by running
   audits against real sites rather than by unit tests.
-- **Audits on the live instance are capped at 10 pages** to fit Vercel's
-  five-minute function limit; slow sites may be trimmed further, and the report
+- **Audits on the live instance are capped at 10 pages and 200 links** to fit
+  Vercel's five-minute function limit; slow sites may be trimmed further, and the report
   says when they are. Run it locally for up to 50 pages.
 - **The rate limit is per running instance** on Vercel, so it is a speed bump
   rather than a strict quota.

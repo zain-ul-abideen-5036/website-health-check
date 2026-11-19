@@ -130,7 +130,8 @@ Every push to `main` deploys automatically afterwards.
 ### How it works on Vercel
 
 - [`api/index.js`](api/index.js) exports the same Express app; `vercel.json` rewrites `/api/*` to it and serves `public/` statically.
-- `includeFiles` bundles `@sparticuz/chromium`'s binary, Lighthouse's locale and config files, and axe-core, which are read from disk at run time and would otherwise be missed by file tracing.
+- Lighthouse loads its gatherers and audits with dynamic imports, which Vercel's file tracing cannot follow, so `includeFiles` bundles `node_modules` and `excludeFiles` drops what never runs: Sentry (only loaded when Lighthouse error reporting is on), type definitions, source maps and docs. The function stays around 200 MB, under Vercel's 250 MB limit.
+- On Vercel, Chrome for Lighthouse is started through Playwright with a debugging port that Lighthouse connects to. `chrome-launcher` cannot start `@sparticuz/chromium` (it fails with *waiting for dynamic debugging port*). Set `LIGHTHOUSE_VIA_PLAYWRIGHT=1` to use the same path locally.
 - [`lib/browser.js`](lib/browser.js) removes three of `@sparticuz/chromium`'s default flags: `--single-process` (closing one page could take the whole browser down, surfacing as *Target page, context or browser has been closed*), and `--disable-web-security` and `--allow-running-insecure-content` (which would hide CORS and mixed-content problems from the audit).
 - Each audit gets a time budget 27 seconds under the limit. If time runs short the crawl stops starting new pages, the link checker stops starting new checks, the second Lighthouse device or the screenshots are skipped, and the report states what was shortened. If the limit is reached anyway, the stream sends a clear failure message 12 seconds before the platform would cut the connection.
 
@@ -340,6 +341,8 @@ major version.
 |---|---|
 | `npm start` exits immediately | Port 3000 is in use; the message says so. Close the other server or set `PORT` |
 | *Setup needed* banner on Vercel | No Blob store connected, or no redeploy since connecting it. The banner lists any storage variables it can see |
+| Lighthouse: *waiting for dynamic debugging port* or *Cannot find package* | Chrome for Lighthouse must start through Playwright on Vercel (`lib/checks/lighthouse.js`), and `vercel.json` must bundle `node_modules` for Lighthouse's dynamic imports |
+| Real-visitor data: *GOOGLE_API_KEY is not a valid Google API key* | The value saved is not an API key. Create one under **Credentials → Create credentials → API key**; it starts with `AIza` |
 | *Target page, context or browser has been closed* | Chromium crashed. Check that `playwright-core` matches `@sparticuz/chromium`, and that `lib/browser.js` still filters `--single-process` |
 | Audit stops with a time-limit message | Choose fewer pages or a single Lighthouse device. Very slow sites take longer per page |
 | *The server stopped unexpectedly after …* | Open the deployment's **Logs**. Every step is logged with an `[audit <id>]` prefix |

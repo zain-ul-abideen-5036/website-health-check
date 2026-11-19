@@ -166,7 +166,7 @@
           <p class="lead">Crawl any site in a real browser, run Google Lighthouse and WCAG tests, check every link, and get a ranked fix list with a designed PDF and spreadsheets. ${config.mode === 'stream' ? 'Free to run, with no API keys needed.' : 'Free, and it runs on your own machine.'}</p>
           <form class="audit-form" id="quick-form" novalidate>
             ${urlField('url')}
-            <p class="form-hint">Up to ${prefs.maxPages} pages · Lighthouse ${prefs.device} · <a href="#/new">Change settings</a></p>
+            <p class="form-hint">Up to ${prefs.maxPages} pages · Lighthouse ${prefs.device === 'both' ? 'mobile & desktop' : prefs.device} · <a href="#/new">Change settings</a></p>
             <p class="form-error" id="form-error" role="alert" hidden></p>
           </form>
         </div>

@@ -586,6 +586,44 @@ body.print .meter i, body.print .rail i { transition: none; }
   .figures-row > div { padding: 16px 0 14px; }
 }
 
+/* ================================================================ Landing: hero background */
+/* A quiet "health signal": dot grid, two slow glows and a heartbeat pulse travelling along a line.
+   Runs on transform, opacity and stroke-dashoffset only; pauses off screen and under reduced motion. */
+:root { --ambient-slow: 22s; --ambient-pulse: 7s; --frame: #1b1a17; --frame-edge: #2c2a26; --frame-ui: #2a2824; --frame-ink: #8c887e; }
+.first-screen { position: relative; isolation: isolate; overflow: clip; }
+.hero { position: relative; }
+.hero-bg { position: absolute; inset: 0; z-index: -1; overflow: hidden; pointer-events: none; }
+.hero-grid {
+  position: absolute; inset: 0;
+  background-image: radial-gradient(circle at center, color-mix(in srgb, var(--ink) 16%, transparent) 1px, transparent 1.4px);
+  background-size: 26px 26px;
+  -webkit-mask-image: radial-gradient(ellipse 70% 65% at 50% 40%, #000 30%, transparent 100%);
+          mask-image: radial-gradient(ellipse 70% 65% at 50% 40%, #000 30%, transparent 100%);
+  opacity: .55;
+}
+.hero-glow { position: absolute; width: 46vw; aspect-ratio: 1; border-radius: 50%; filter: blur(70px); opacity: .55; will-change: transform; }
+.hero-glow.g1 { top: -18vw; left: -8vw; background: radial-gradient(circle, color-mix(in srgb, var(--accent) 22%, transparent), transparent 65%); animation: drift-a var(--ambient-slow) var(--ease) infinite alternate; }
+.hero-glow.g2 { bottom: -22vw; right: -10vw; background: radial-gradient(circle, color-mix(in srgb, var(--warn) 16%, transparent), transparent 65%); animation: drift-b calc(var(--ambient-slow) * 1.3) var(--ease) infinite alternate; }
+@keyframes drift-a { to { transform: translate3d(9vw, 6vw, 0) scale(1.08); } }
+@keyframes drift-b { to { transform: translate3d(-8vw, -5vw, 0) scale(1.12); } }
+/* Full-bleed line along the bottom of the hero, shallow enough to stay clear of the text. */
+.hero-pulse { position: absolute; z-index: -1; left: 50%; bottom: -6px; width: 100vw; height: 64px; transform: translateX(-50%); overflow: visible; pointer-events: none; }
+.hero-pulse path { fill: none; stroke-linecap: round; stroke-linejoin: round; vector-effect: non-scaling-stroke; }
+.pulse-base { stroke: color-mix(in srgb, var(--ink) 9%, transparent); stroke-width: 1.5; }
+.pulse-signal {
+  stroke: var(--accent); stroke-width: 2.25; opacity: .7;
+  stroke-dasharray: 90 910; stroke-dashoffset: 1000;
+  filter: drop-shadow(0 0 6px color-mix(in srgb, var(--accent) 60%, transparent));
+  animation: signal var(--ambient-pulse) linear infinite;
+}
+@keyframes signal { to { stroke-dashoffset: 0; } }
+.first-screen.is-offscreen .hero-glow, .first-screen.is-offscreen .pulse-signal { animation-play-state: paused; }
+@media (max-width: 960px) { .hero-pulse { bottom: -4px; height: 48px; } .hero-glow { width: 80vw; } }
+@media (prefers-reduced-motion: reduce) {
+  .hero-glow { animation: none !important; }
+  .pulse-signal { animation: none !important; stroke-dasharray: none; opacity: .25; }
+}
+
 /* ================================================================ Landing: product showcase */
 /* Each screenshot exists in light and dark; show the one matching the active theme. */
 .shot-dark { display: none; }
@@ -598,25 +636,52 @@ body.print .meter i, body.print .rail i { transition: none; }
 
 .showcase img { width: 100%; height: auto; vertical-align: bottom; }
 .showcase .section-head { max-width: 640px; }
-.device-stage { position: relative; margin-top: 40px; padding: 0 7% 6% 0; }
-.browser-frame { margin: 0; border: 1px solid var(--line-strong); border-radius: var(--radius-lg); overflow: hidden; background: var(--surface); box-shadow: var(--shadow-raise); }
-.browser-bar { display: flex; align-items: center; gap: 6px; height: 34px; padding: 0 14px; border-bottom: 1px solid var(--line); background: var(--sunk); }
-.browser-bar i { width: 9px; height: 9px; border-radius: 50%; background: var(--line-strong); }
-.browser-bar span { margin-left: 12px; font-size: var(--text-xs); color: var(--ink-3); }
-.phone-frame { position: absolute; right: 0; bottom: 0; width: clamp(110px, 21%, 240px); margin: 0; padding: 7px; background: #1b1a17; border: 1px solid var(--line-strong); border-radius: 30px; box-shadow: 0 24px 50px -22px rgba(0, 0, 0, .5); }
-.phone-frame img { border-radius: 23px; }
-.shot-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 24px; margin-top: 48px; }
+
+/* Desktop + phone composition, sized from the window height so it always fits on one screen. */
+.device-stage { position: relative; margin: 40px auto 0; padding: 0 7% 6% 0; width: min(100%, calc((100svh - var(--header-h) - 110px) * 1.56)); }
+
+/* Device frames are dark hardware in both themes, so the screenshots read as separate objects. */
+.browser-frame, .phone-frame, .card-frame {
+  margin: 0; background: var(--frame); border: 1px solid var(--frame-edge);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .06), 0 30px 60px -28px rgba(25, 18, 5, .45), 0 10px 20px -12px rgba(25, 18, 5, .25);
+}
+.browser-frame { border-radius: 14px; padding: 0 7px 7px; }
+.browser-bar { position: relative; display: flex; align-items: center; gap: 7px; height: 36px; padding: 0 6px; }
+.browser-bar i { width: 10px; height: 10px; border-radius: 50%; background: #e0604f; opacity: .85; }
+.browser-bar i:nth-child(2) { background: #e3a93b; }
+.browser-bar i:nth-child(3) { background: #4fa86b; }
+.browser-bar span { position: absolute; left: 50%; transform: translateX(-50%); padding: 3px 14px; border-radius: 6px; background: var(--frame-ui); color: var(--frame-ink); font-size: var(--text-xs); white-space: nowrap; }
+.browser-frame img { border-radius: 8px; }
+.phone-frame { position: absolute; right: 0; bottom: 0; width: clamp(110px, 21%, 240px); padding: 7px; border-radius: 32px; }
+.phone-frame img { border-radius: 25px; }
+
+.shot-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 24px; margin-top: 56px; }
 .shot-card { margin: 0; }
-.shot-card img { aspect-ratio: 16 / 10; object-fit: cover; object-position: top; border: 1px solid var(--line); border-radius: var(--radius-lg); background: var(--surface); }
-.shot-card.paper img { background: #fff; }
-.shot-card figcaption { margin-top: 12px; font-size: var(--text-sm); color: var(--ink-3); }
+.card-frame { padding: 6px; border-radius: 14px; }
+.card-frame img { aspect-ratio: 16 / 10; object-fit: cover; object-position: top; border-radius: 8px; background: #fff; }
+.shot-card figcaption { margin-top: 14px; font-size: var(--text-sm); color: var(--ink-3); }
 .shot-card figcaption b { display: block; margin-bottom: 2px; color: var(--ink); font-weight: 600; }
-@media (max-width: 860px) { .shot-grid { grid-template-columns: minmax(0, 1fr); gap: 28px; } }
+
+/* Dark theme: a lighter frame edge and a soft glow keep the frames distinct from the dark page. */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) { --frame: #24221f; --frame-edge: rgba(255, 255, 255, .1); --frame-ui: #302e2a; --frame-ink: #a39f95; }
+  :root:not([data-theme="light"]) .browser-frame, :root:not([data-theme="light"]) .phone-frame, :root:not([data-theme="light"]) .card-frame {
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, .08), 0 0 0 1px rgba(0, 0, 0, .6), 0 30px 70px -25px rgba(0, 0, 0, .85), 0 0 90px -30px color-mix(in srgb, var(--accent) 40%, transparent);
+  }
+}
+:root[data-theme="dark"] { --frame: #24221f; --frame-edge: rgba(255, 255, 255, .1); --frame-ui: #302e2a; --frame-ink: #a39f95; }
+:root[data-theme="dark"] .browser-frame, :root[data-theme="dark"] .phone-frame, :root[data-theme="dark"] .card-frame {
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .08), 0 0 0 1px rgba(0, 0, 0, .6), 0 30px 70px -25px rgba(0, 0, 0, .85), 0 0 90px -30px color-mix(in srgb, var(--accent) 40%, transparent);
+}
+
+@media (max-width: 860px) { .shot-grid { grid-template-columns: minmax(0, 1fr); gap: 32px; } }
 @media (max-width: 640px) {
-  .device-stage { padding: 0 12% 16% 0; margin-top: 28px; }
-  .phone-frame { width: 31%; padding: 4px; border-radius: 18px; }
-  .phone-frame img { border-radius: 14px; }
-  .browser-bar { height: 22px; padding: 0 9px; gap: 4px; }
+  .device-stage { width: 100%; padding: 0 12% 16% 0; margin-top: 28px; }
+  .browser-frame { padding: 0 4px 4px; border-radius: 10px; }
+  .browser-bar { height: 22px; gap: 4px; padding: 0 4px; }
   .browser-bar i { width: 6px; height: 6px; }
   .browser-bar span { display: none; }
+  .browser-frame img { border-radius: 5px; }
+  .phone-frame { width: 31%; padding: 4px; border-radius: 18px; }
+  .phone-frame img { border-radius: 14px; }
 }

@@ -134,6 +134,9 @@
     </figure>`;
   }
 
+  /** Background "health signal": a flat line with a heartbeat spike every 360px (same shape as the logo). */
+  const PULSE_PATH = 'M0 100' + [180, 540, 900, 1260].map((x) => ` L${x} 100 l14 -46 l16 92 l14 -64 l10 18`).join('') + ' L1440 100';
+
   /** A real app screenshot in light and dark versions; CSS shows the one matching the theme. Responsive via srcset. */
   function shot(name, alt, { big, small, h, sizes }) {
     return ['light', 'dark'].map((t) => `<img class="shot-${t}" src="/img/showcase/${name}-${t}-${small}.webp" srcset="/img/showcase/${name}-${t}-${small}.webp ${small}w, /img/showcase/${name}-${t}-${big}.webp ${big}w" sizes="${sizes}" width="${big}" height="${h}" alt="${esc(alt)}" loading="lazy" decoding="async">`).join('');
@@ -143,7 +146,15 @@
     document.title = 'Website Health Check: audits your clients can read';
     app.innerHTML = `
       <div class="first-screen">
+      <div class="hero-bg" aria-hidden="true">
+        <div class="hero-grid"></div>
+        <div class="hero-glow g1"></div><div class="hero-glow g2"></div>
+      </div>
       <section class="hero container">
+        <svg class="hero-pulse" viewBox="0 0 1440 160" preserveAspectRatio="none" aria-hidden="true">
+          <path class="pulse-base" d="${PULSE_PATH}" />
+          <path class="pulse-signal" d="${PULSE_PATH}" pathLength="1000" />
+        </svg>
         <div class="hero-copy">
           <p class="kicker">Performance · SEO · Accessibility · Security · Links</p>
           <h1>Website audits your clients can actually read.</h1>
@@ -178,9 +189,9 @@
           </figure>
         </div>
         <div class="shot-grid">
-          <figure class="shot-card">${shot('issues', 'An expanded issue with why it matters, how to fix it and the affected pages', { big: 960, small: 560, h: 600, sizes: '(max-width: 860px) 92vw, 380px' })}<figcaption><b>Ranked, explained issues</b>Why it matters, how to fix it and exactly where.</figcaption></figure>
-          <figure class="shot-card paper"><img src="/img/showcase/pdf-cover-560.webp" srcset="/img/showcase/pdf-cover-560.webp 560w, /img/showcase/pdf-cover-910.webp 910w" sizes="(max-width: 860px) 92vw, 380px" width="910" height="1288" alt="The PDF report cover with the site name, score, grade, area scores and screenshots" loading="lazy" decoding="async"><figcaption><b>A PDF for the client</b>Cover, summary, action plan and findings.</figcaption></figure>
-          <figure class="shot-card">${shot('history', 'The History page with a score trend for each website', { big: 960, small: 560, h: 600, sizes: '(max-width: 860px) 92vw, 380px' })}<figcaption><b>History and trends</b>Re-run an audit and see what moved.</figcaption></figure>
+          <figure class="shot-card"><div class="card-frame">${shot('issues', 'An expanded issue with why it matters, how to fix it and the affected pages', { big: 960, small: 560, h: 600, sizes: '(max-width: 860px) 92vw, 380px' })}</div><figcaption><b>Ranked, explained issues</b>Why it matters, how to fix it and exactly where.</figcaption></figure>
+          <figure class="shot-card paper"><div class="card-frame"><img src="/img/showcase/pdf-cover-560.webp" srcset="/img/showcase/pdf-cover-560.webp 560w, /img/showcase/pdf-cover-910.webp 910w" sizes="(max-width: 860px) 92vw, 380px" width="910" height="1288" alt="The PDF report cover with the site name, score, grade, area scores and screenshots" loading="lazy" decoding="async"></div><figcaption><b>A PDF for the client</b>Cover, summary, action plan and findings.</figcaption></figure>
+          <figure class="shot-card"><div class="card-frame">${shot('history', 'The History page with a score trend for each website', { big: 960, small: 560, h: 600, sizes: '(max-width: 860px) 92vw, 380px' })}</div><figcaption><b>History and trends</b>Re-run an audit and see what moved.</figcaption></figure>
         </div>
       </section>
 
@@ -221,6 +232,12 @@
         <h2>Audit a website now.</h2>
         <a class="btn btn-primary btn-lg" href="#/new">Start a new audit</a>
       </div></section>`;
+
+    // Run the background animation only while the hero is visible.
+    const first = app.querySelector('.first-screen');
+    if (first && 'IntersectionObserver' in window) {
+      new IntersectionObserver(([e]) => first.classList.toggle('is-offscreen', !e.isIntersecting)).observe(first);
+    }
 
     const form = document.getElementById('quick-form');
     const input = document.getElementById('url');

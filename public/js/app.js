@@ -12,7 +12,12 @@
   const CATS = { performance: 'Performance', seo: 'SEO', accessibility: 'Accessibility', security: 'Security', links: 'Links & content' };
 
   // ---------------------------------------------------------------- routing
+  // Incremented on every navigation, so a view that finishes loading late doesn't overwrite a newer one.
+  let navigation = 0;
+  const stale = (n) => n !== navigation;
+
   async function route() {
+    navigation++;
     activeStream?.close();
     activeStream = null;
     const [, view, id, tab] = location.hash.split('/');
@@ -396,7 +401,9 @@
     app.innerHTML = `<div class="container page"><header class="page-head row"><div><p class="kicker">History</p><h1>Saved audits</h1>${config.public ? '<p class="page-note">Audits run in this browser. Anyone you send a report link to can view that report.</p>' : ''}</div><a class="btn btn-primary" href="#/new">New audit</a></header>
       <div class="skeleton" style="padding-top:0">${'<div class="b" style="height:44px"></div>'.repeat(5)}</div></div>`;
     let list = [];
+    const nav = navigation;
     try { list = await api('/api/audits'); } catch (e) { toast(e.message); }
+    if (stale(nav)) return;
     const page = app.querySelector('.page');
     if (!page) return;
 
@@ -582,10 +589,13 @@
       <div class="b" style="width:180px;height:84px"></div><div class="b" style="width:42%;height:22px"></div><div class="b" style="width:64%;height:14px;margin-bottom:48px"></div>
       ${'<div class="b" style="height:44px"></div>'.repeat(5)}</div>`;
     let audit;
+    const nav = navigation;
     try { audit = await api(`/api/audits/${id}`); } catch (e) {
+      if (stale(nav)) return;
       app.innerHTML = `<div class="container run"><p class="kicker">Report unavailable</p><h1>${esc(e.message)}</h1><p style="margin-top:20px"><a class="btn" href="#/history">Back to history</a></p></div>`;
       return;
     }
+    if (stale(nav)) return;
     document.title = `${new URL(audit.finalUrl).host} · ${audit.analysis.overall}/100 · Website Health Check`;
     window.Report.mount(app, audit, { tab, onTab: (t) => history.replaceState(null, '', `#/audit/${id}/${t}`) });
 

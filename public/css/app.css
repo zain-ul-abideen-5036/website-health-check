@@ -587,41 +587,91 @@ body.print .meter i, body.print .rail i { transition: none; }
 }
 
 /* ================================================================ Landing: hero background */
-/* A quiet "health signal": dot grid, two slow glows and a heartbeat pulse travelling along a line.
-   Runs on transform, opacity and stroke-dashoffset only; pauses off screen and under reduced motion. */
-:root { --ambient-slow: 22s; --ambient-pulse: 7s; --frame: #1b1a17; --frame-edge: #2c2a26; --frame-ui: #2a2824; --frame-ink: #8c887e; }
-.first-screen { position: relative; isolation: isolate; overflow: clip; }
+/* A heartbeat that ripples through the dot grid: each beat sends a ring of light outward from the
+   score in the preview card, lighting the dots it passes. Two quick beats, then a rest, like a pulse.
+   Pauses off screen and is replaced by a still grid under reduced motion. */
+:root { --ambient-slow: 22s; --beat: 2.4s; --beat-ease: cubic-bezier(.15, .6, .3, 1); --frame: #1b1a17; --frame-edge: #2c2a26; --frame-ui: #2a2824; --frame-ink: #8c887e; }
+@property --r { syntax: "<length>"; inherits: false; initial-value: 0px; }
+
+.first-screen { position: relative; isolation: isolate; overflow: clip; --beat-x: 75%; --beat-y: 40%; }
 .hero { position: relative; }
 .hero-bg { position: absolute; inset: 0; z-index: -1; overflow: hidden; pointer-events: none; }
-.hero-grid {
+
+/* Dot grid, faded towards the edges. The heartbeat layers repeat it exactly, in the accent colour. */
+.hero-grid, .beat {
   position: absolute; inset: 0;
-  background-image: radial-gradient(circle at center, color-mix(in srgb, var(--ink) 16%, transparent) 1px, transparent 1.4px);
   background-size: 26px 26px;
-  -webkit-mask-image: radial-gradient(ellipse 70% 65% at 50% 40%, #000 30%, transparent 100%);
-          mask-image: radial-gradient(ellipse 70% 65% at 50% 40%, #000 30%, transparent 100%);
+}
+.hero-grid {
+  background-image: radial-gradient(circle at center, color-mix(in srgb, var(--ink) 16%, transparent) 1px, transparent 1.4px);
+  -webkit-mask-image: radial-gradient(ellipse 75% 70% at 50% 45%, #000 30%, transparent 100%);
+          mask-image: radial-gradient(ellipse 75% 70% at 50% 45%, #000 30%, transparent 100%);
   opacity: .55;
 }
-.hero-glow { position: absolute; width: 46vw; aspect-ratio: 1; border-radius: 50%; filter: blur(70px); opacity: .55; will-change: transform; }
-.hero-glow.g1 { top: -18vw; left: -8vw; background: radial-gradient(circle, color-mix(in srgb, var(--accent) 22%, transparent), transparent 65%); animation: drift-a var(--ambient-slow) var(--ease) infinite alternate; }
-.hero-glow.g2 { bottom: -22vw; right: -10vw; background: radial-gradient(circle, color-mix(in srgb, var(--warn) 16%, transparent), transparent 65%); animation: drift-b calc(var(--ambient-slow) * 1.3) var(--ease) infinite alternate; }
+.beat-field {
+  position: absolute; inset: 0;
+  -webkit-mask-image: radial-gradient(ellipse 80% 75% at 50% 45%, #000 35%, transparent 100%);
+          mask-image: radial-gradient(ellipse 80% 75% at 50% 45%, #000 35%, transparent 100%);
+}
+.beat {
+  background-image: radial-gradient(circle at center, var(--accent) 1.7px, transparent 2.4px);
+  /* Only a ring of dots shows: a soft trailing edge behind a sharp leading edge. */
+  -webkit-mask-image: radial-gradient(circle at var(--beat-x) var(--beat-y), transparent calc(var(--r) - 180px), #000 calc(var(--r) - 34px), #000 var(--r), transparent calc(var(--r) + 6px));
+          mask-image: radial-gradient(circle at var(--beat-x) var(--beat-y), transparent calc(var(--r) - 180px), #000 calc(var(--r) - 34px), #000 var(--r), transparent calc(var(--r) + 6px));
+  opacity: 0;
+  animation: heartbeat var(--beat) var(--beat-ease) infinite;
+}
+.beat.second { animation-delay: .3s; }
+@keyframes heartbeat {
+  0%   { --r: 30px;  opacity: 0; }
+  4%   { opacity: .95; }
+  70%  { --r: 1050px; opacity: 0; }
+  100% { --r: 1050px; opacity: 0; }
+}
+
+/* A soft glow behind the score that swells on each beat (lub-dub). */
+.beat-core {
+  position: absolute; left: var(--beat-x); top: var(--beat-y);
+  width: 680px; height: 680px; margin: -340px 0 0 -340px; border-radius: 50%;
+  background: radial-gradient(circle, color-mix(in srgb, var(--accent) 34%, transparent) 25%, transparent 62%);
+  opacity: .35; transform: scale(.8);
+  animation: core-beat var(--beat) var(--beat-ease) infinite;
+}
+@keyframes core-beat {
+  0%   { transform: scale(.8);  opacity: .3; }
+  8%   { transform: scale(1);   opacity: .7; }
+  16%  { transform: scale(.88); opacity: .4; }
+  24%  { transform: scale(1.04); opacity: .75; }
+  55%  { transform: scale(.8);  opacity: .3; }
+  100% { transform: scale(.8);  opacity: .3; }
+}
+
+/* "Live" dot in the preview card header, beating in time. */
+.specimen-head .live { display: inline-flex; align-items: center; gap: 7px; }
+.specimen-head .live::before {
+  content: ""; width: 6px; height: 6px; border-radius: 50%; background: var(--accent);
+  box-shadow: 0 0 0 0 color-mix(in srgb, var(--accent) 45%, transparent);
+  animation: live-dot var(--beat) var(--beat-ease) infinite;
+}
+@keyframes live-dot {
+  0%, 100% { transform: scale(1); box-shadow: 0 0 0 0 color-mix(in srgb, var(--accent) 45%, transparent); }
+  8%  { transform: scale(1.35); }
+  16% { transform: scale(1); }
+  24% { transform: scale(1.3); box-shadow: 0 0 0 7px transparent; }
+  40% { transform: scale(1); }
+}
+
+.hero-glow { position: absolute; width: 46vw; aspect-ratio: 1; border-radius: 50%; filter: blur(70px); opacity: .5; will-change: transform; }
+.hero-glow.g1 { top: -18vw; left: -8vw; background: radial-gradient(circle, color-mix(in srgb, var(--accent) 20%, transparent), transparent 65%); animation: drift-a var(--ambient-slow) var(--ease) infinite alternate; }
+.hero-glow.g2 { bottom: -22vw; right: -10vw; background: radial-gradient(circle, color-mix(in srgb, var(--warn) 14%, transparent), transparent 65%); animation: drift-b calc(var(--ambient-slow) * 1.3) var(--ease) infinite alternate; }
 @keyframes drift-a { to { transform: translate3d(9vw, 6vw, 0) scale(1.08); } }
 @keyframes drift-b { to { transform: translate3d(-8vw, -5vw, 0) scale(1.12); } }
-/* Full-bleed line along the bottom of the hero, shallow enough to stay clear of the text. */
-.hero-pulse { position: absolute; z-index: -1; left: 50%; bottom: -6px; width: 100vw; height: 64px; transform: translateX(-50%); overflow: visible; pointer-events: none; }
-.hero-pulse path { fill: none; stroke-linecap: round; stroke-linejoin: round; vector-effect: non-scaling-stroke; }
-.pulse-base { stroke: color-mix(in srgb, var(--ink) 9%, transparent); stroke-width: 1.5; }
-.pulse-signal {
-  stroke: var(--accent); stroke-width: 2.25; opacity: .7;
-  stroke-dasharray: 90 910; stroke-dashoffset: 1000;
-  filter: drop-shadow(0 0 6px color-mix(in srgb, var(--accent) 60%, transparent));
-  animation: signal var(--ambient-pulse) linear infinite;
-}
-@keyframes signal { to { stroke-dashoffset: 0; } }
-.first-screen.is-offscreen .hero-glow, .first-screen.is-offscreen .pulse-signal { animation-play-state: paused; }
-@media (max-width: 960px) { .hero-pulse { bottom: -4px; height: 48px; } .hero-glow { width: 80vw; } }
+
+.first-screen.is-offscreen .hero-glow, .first-screen.is-offscreen .beat, .first-screen.is-offscreen .beat-core { animation-play-state: paused; }
+@media (max-width: 960px) { .hero-glow { width: 80vw; } .beat-core { width: 440px; height: 440px; margin: -220px 0 0 -220px; } }
 @media (prefers-reduced-motion: reduce) {
-  .hero-glow { animation: none !important; }
-  .pulse-signal { animation: none !important; stroke-dasharray: none; opacity: .25; }
+  .hero-glow, .beat-core, .specimen-head .live::before { animation: none !important; }
+  .beat { display: none; }
 }
 
 /* ================================================================ Landing: product showcase */

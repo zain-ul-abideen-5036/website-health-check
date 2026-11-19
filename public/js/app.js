@@ -125,7 +125,7 @@
     const sample = !a;
     a ||= { host: 'example-bakery.co.uk', overall: 72, grade: 'C', scores: { performance: 58, seo: 81, accessibility: 69, security: 77, links: 92 }, counts: { critical: 1, high: 4, medium: 7, low: 5 }, createdAt: null, pages: 18 };
     return `<figure class="specimen" aria-label="${sample ? 'Sample report' : 'Your latest audit'}">
-      <div class="specimen-head"><span>${sample ? 'Sample report' : 'Your latest audit'}</span><span>${a.createdAt ? fmtDate(a.createdAt) : '18 pages'}</span></div>
+      <div class="specimen-head"><span class="live">${sample ? 'Sample report' : 'Your latest audit'}</span><span>${a.createdAt ? fmtDate(a.createdAt) : '18 pages'}</span></div>
       <p class="specimen-host">${esc(a.host)}</p>
       <div class="specimen-score"><span class="n">${a.overall}</span><span class="of">/100</span><span class="grade t-${gradeTone(a.grade)}">${a.grade}</span></div>
       <ul class="specimen-areas">${Object.entries(CATS).map(([k, l]) => `<li><span>${l}</span><span class="meter t-${tone(a.scores[k])}"><i style="--v:${a.scores[k] / 100}"></i></span><span class="v">${a.scores[k]}</span></li>`).join('')}</ul>
@@ -134,8 +134,10 @@
     </figure>`;
   }
 
-  /** Background "health signal": a flat line with a heartbeat spike every 360px (same shape as the logo). */
-  const PULSE_PATH = 'M0 100' + [180, 540, 900, 1260].map((x) => ` L${x} 100 l14 -46 l16 92 l14 -64 l10 18`).join('') + ' L1440 100';
+  // The heartbeat starts from the score in the landing preview card; re-measured on resize.
+  let placeBeat = () => {};
+  let beatFrame = 0;
+  window.addEventListener('resize', () => { cancelAnimationFrame(beatFrame); beatFrame = requestAnimationFrame(() => placeBeat()); });
 
   /** A real app screenshot in light and dark versions; CSS shows the one matching the theme. Responsive via srcset. */
   function shot(name, alt, { big, small, h, sizes }) {
@@ -149,12 +151,10 @@
       <div class="hero-bg" aria-hidden="true">
         <div class="hero-grid"></div>
         <div class="hero-glow g1"></div><div class="hero-glow g2"></div>
+        <div class="beat-field"><span class="beat"></span><span class="beat second"></span></div>
+        <div class="beat-core"></div>
       </div>
       <section class="hero container">
-        <svg class="hero-pulse" viewBox="0 0 1440 160" preserveAspectRatio="none" aria-hidden="true">
-          <path class="pulse-base" d="${PULSE_PATH}" />
-          <path class="pulse-signal" d="${PULSE_PATH}" pathLength="1000" />
-        </svg>
         <div class="hero-copy">
           <p class="kicker">Performance · SEO · Accessibility · Security · Links</p>
           <h1>Website audits your clients can actually read.</h1>
@@ -235,6 +235,14 @@
 
     // Run the background animation only while the hero is visible.
     const first = app.querySelector('.first-screen');
+    placeBeat = () => {
+      const card = first?.querySelector('.specimen-score');
+      if (!card || !first.isConnected) return;
+      const f = first.getBoundingClientRect(), r = card.getBoundingClientRect();
+      first.style.setProperty('--beat-x', `${Math.round(r.left + 40 - f.left)}px`);
+      first.style.setProperty('--beat-y', `${Math.round(r.top + r.height / 2 - f.top)}px`);
+    };
+    placeBeat();
     if (first && 'IntersectionObserver' in window) {
       new IntersectionObserver(([e]) => first.classList.toggle('is-offscreen', !e.isIntersecting)).observe(first);
     }
@@ -258,6 +266,7 @@
     if (!document.getElementById('hero-preview')) return; // navigated away
     if (list.length) {
       document.getElementById('hero-preview').innerHTML = previewCard(list[0]);
+      placeBeat();
       document.getElementById('recent').hidden = false;
       document.getElementById('recent-body').innerHTML = historyTable(list.slice(0, 4), { compact: true });
     }

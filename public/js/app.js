@@ -134,9 +134,15 @@
     </figure>`;
   }
 
+  /** A real app screenshot in light and dark versions; CSS shows the one matching the theme. Responsive via srcset. */
+  function shot(name, alt, { big, small, h, sizes }) {
+    return ['light', 'dark'].map((t) => `<img class="shot-${t}" src="/img/showcase/${name}-${t}-${small}.webp" srcset="/img/showcase/${name}-${t}-${small}.webp ${small}w, /img/showcase/${name}-${t}-${big}.webp ${big}w" sizes="${sizes}" width="${big}" height="${h}" alt="${esc(alt)}" loading="lazy" decoding="async">`).join('');
+  }
+
   async function landingView() {
     document.title = 'Website Health Check: audits your clients can read';
     app.innerHTML = `
+      <div class="first-screen">
       <section class="hero container">
         <div class="hero-copy">
           <p class="kicker">Performance · SEO · Accessibility · Security · Links</p>
@@ -157,6 +163,26 @@
         <div><span class="v">6</span><span class="k">export formats</span></div>
         <div><span class="v">£0</span><span class="k">no API keys or accounts</span></div>
       </div></section>
+      </div>
+
+      <section class="container section showcase" aria-labelledby="showcase-title">
+        <div class="section-head"><p class="kicker">See it in action</p><h2 id="showcase-title">A real report, on any screen.</h2>
+          <p class="muted">Captured from an audit of books.toscrape.com, a public sandbox site: 10 pages, 212 links and 26 issues, ranked and explained.</p></div>
+        <div class="device-stage">
+          <figure class="browser-frame">
+            <div class="browser-bar" aria-hidden="true"><i></i><i></i><i></i><span>Website Health Check · Report</span></div>
+            ${shot('report', 'A report overview: an overall score of 82 out of 100, grade B, five area scores and the issues by severity', { big: 1440, small: 800, h: 900, sizes: '(max-width: 1240px) 92vw, 1100px' })}
+          </figure>
+          <figure class="phone-frame">
+            ${shot('phone', 'The same report on a phone', { big: 780, small: 390, h: 1688, sizes: '(max-width: 640px) 34vw, 240px' })}
+          </figure>
+        </div>
+        <div class="shot-grid">
+          <figure class="shot-card">${shot('issues', 'An expanded issue with why it matters, how to fix it and the affected pages', { big: 960, small: 560, h: 600, sizes: '(max-width: 860px) 92vw, 380px' })}<figcaption><b>Ranked, explained issues</b>Why it matters, how to fix it and exactly where.</figcaption></figure>
+          <figure class="shot-card paper"><img src="/img/showcase/pdf-cover-560.webp" srcset="/img/showcase/pdf-cover-560.webp 560w, /img/showcase/pdf-cover-910.webp 910w" sizes="(max-width: 860px) 92vw, 380px" width="910" height="1288" alt="The PDF report cover with the site name, score, grade, area scores and screenshots" loading="lazy" decoding="async"><figcaption><b>A PDF for the client</b>Cover, summary, action plan and findings.</figcaption></figure>
+          <figure class="shot-card">${shot('history', 'The History page with a score trend for each website', { big: 960, small: 560, h: 600, sizes: '(max-width: 860px) 92vw, 380px' })}<figcaption><b>History and trends</b>Re-run an audit and see what moved.</figcaption></figure>
+        </div>
+      </section>
 
       <section class="container section">
         <div class="section-head"><p class="kicker">How it works</p><h2>From a URL to a client-ready report in about two minutes.</h2></div>

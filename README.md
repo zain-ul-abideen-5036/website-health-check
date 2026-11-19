@@ -173,7 +173,7 @@ an interactive HTML file and four Excel-ready spreadsheets.
 </table>
 
 <details>
-<summary><b>More of the product</b>: the written summary, history, pages, screenshots and the full landing page</summary>
+<summary><b>More of the product</b>: the written summary, history, pages, screenshots, the landing page showcase and the full landing page</summary>
 
 <br />
 
@@ -197,9 +197,13 @@ from the audit results, with no AI service involved.
 
 <img src="docs/screenshots/device-screenshots.png" alt="The Screenshots tab showing the home page as captured on a desktop monitor, a tablet and a phone" width="100%" />
 
+**The landing page showcase**: real screenshots in a browser and a phone frame, switching between light and dark images with the theme.
+
+<img src="docs/screenshots/section-showcase.png" alt="The See it in action section of the landing page: a report overview in a desktop browser frame with the same report on a phone overlapping it, and three cards below for ranked issues, the PDF report and history" width="100%" />
+
 **The complete landing page**, top to bottom.
 
-<img src="docs/screenshots/landing-full.png" alt="The full landing page: the hero, key figures, how it works, what it checks, what you get, free and private, recent audits and the closing call to action" width="100%" />
+<img src="docs/screenshots/landing-full.png" alt="The full landing page: the hero, key figures, the product showcase, how it works, what it checks, what you get, free and private, recent audits and the closing call to action" width="100%" />
 
 </details>
 
